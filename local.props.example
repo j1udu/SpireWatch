@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Example macOS path: /Users/you/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/data_sts2_macos_arm64 -->
+    <Sts2DataDir>/absolute/path/to/data_sts2_platform</Sts2DataDir>
+  </PropertyGroup>
+</Project>

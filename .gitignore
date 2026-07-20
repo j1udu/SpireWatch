@@ -1,0 +1,11 @@
+.DS_Store
+.idea/
+.vs/
+.vscode/
+bin/
+obj/
+.godot/
+build/
+local.props
+*.user
+*.suo
