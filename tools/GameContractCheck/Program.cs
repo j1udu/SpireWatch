@@ -130,6 +130,27 @@ try
         "ForceClick",
         method => method.GetParameters().Length == 0 && method.ReturnType == typeof(void));
 
+    var playerHand = RequireType(assembly, "MegaCrit.Sts2.Core.Nodes.Combat.NPlayerHand");
+    RequireSingleMethod(
+        playerHand,
+        "StartCardPlay",
+        method => method.GetParameters() is [
+            { ParameterType.FullName: "MegaCrit.Sts2.Core.Nodes.Cards.Holders.NHandCardHolder" },
+            { ParameterType: var startedViaShortcutType }
+        ] && startedViaShortcutType == typeof(bool) && method.ReturnType == typeof(void));
+    RequireSingleMethod(
+        playerHand,
+        "SelectCardInSimpleMode",
+        method => method.GetParameters() is [{ ParameterType.FullName: "MegaCrit.Sts2.Core.Nodes.Cards.Holders.NHandCardHolder" }] && method.ReturnType == typeof(void));
+    RequireSingleMethod(
+        playerHand,
+        "SelectCardInUpgradeMode",
+        method => method.GetParameters() is [{ ParameterType.FullName: "MegaCrit.Sts2.Core.Nodes.Cards.Holders.NHandCardHolder" }] && method.ReturnType == typeof(void));
+    RequireSingleMethod(
+        playerHand,
+        "OnSelectModeConfirmButtonPressed",
+        method => method.GetParameters() is [{ ParameterType.FullName: "MegaCrit.Sts2.Core.Nodes.GodotExtensions.NButton" }] && method.ReturnType == typeof(void));
+
     var actionQueueSynchronizer = RequireType(assembly, "MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer");
     RequireSingleMethod(
         actionQueueSynchronizer,

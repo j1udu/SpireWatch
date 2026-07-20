@@ -3,7 +3,7 @@
   "name": "SpireWatch",
   "author": "SpireWatch contributors",
   "description": "Running multiplayer lobby spectator support for Slay the Spire 2.",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "has_pck": false,
   "has_dll": true,
   "dependencies": [],

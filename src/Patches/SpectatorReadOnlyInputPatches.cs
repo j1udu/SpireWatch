@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.PeerInput;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rewards;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using SpireWatch.Spectating;
@@ -18,6 +19,42 @@ internal static class SpectatorForcedClickPatch
     private static bool Prefix()
     {
         return !SpectatorRegistry.IsLocalSpectator;
+    }
+}
+
+[HarmonyPatch(typeof(NPlayerHand), "StartCardPlay")]
+internal static class SpectatorHandCardPlayPatch
+{
+    private static bool Prefix()
+    {
+        return SpectatorActionRequestPatch.RejectLocalAction("hand card drag");
+    }
+}
+
+[HarmonyPatch(typeof(NPlayerHand), "SelectCardInSimpleMode")]
+internal static class SpectatorHandSimpleSelectionPatch
+{
+    private static bool Prefix()
+    {
+        return SpectatorActionRequestPatch.RejectLocalAction("hand card selection");
+    }
+}
+
+[HarmonyPatch(typeof(NPlayerHand), "SelectCardInUpgradeMode")]
+internal static class SpectatorHandUpgradeSelectionPatch
+{
+    private static bool Prefix()
+    {
+        return SpectatorActionRequestPatch.RejectLocalAction("hand card upgrade selection");
+    }
+}
+
+[HarmonyPatch(typeof(NPlayerHand), "OnSelectModeConfirmButtonPressed")]
+internal static class SpectatorHandSelectionConfirmPatch
+{
+    private static bool Prefix()
+    {
+        return SpectatorActionRequestPatch.RejectLocalAction("hand card selection confirmation");
     }
 }
 
