@@ -1,13 +1,11 @@
 {
   "id": "SpireWatch",
-  "pck_name": "SpireWatch",
   "name": "SpireWatch",
   "author": "SpireWatch contributors",
   "description": "Running multiplayer lobby spectator support for Slay the Spire 2.",
-  "version": "0.1.0-alpha.1",
-  "has_pck": true,
+  "version": "0.1.0-alpha.4",
+  "has_pck": false,
   "has_dll": true,
-  "dependencies": [
-    { "id": "STS2-RitsuLib" }
-  ]
+  "dependencies": [],
+  "affects_gameplay": true
 }

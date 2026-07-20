@@ -7,5 +7,6 @@ obj/
 .godot/
 build/
 local.props
+.learnings/
 *.user
 *.suo

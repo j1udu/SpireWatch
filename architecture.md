@@ -4,7 +4,7 @@
 
 SpireWatch extends an existing Slay the Spire 2 Steam multiplayer session. It must preserve the vanilla `Multiplayer -> Join Game` user flow and add only one allowed case: a compatible SpireWatch lobby whose run has started may be joined as a spectator.
 
-The expected stack is a `net9.0` Godot mod referencing the game's `sts2.dll`, Harmony, and GodotSharp. The manifest declares a runtime dependency on STS2-RitsuLib; the first-stage network implementation uses direct game APIs because its work is at the multiplayer boundary.
+The current stack is a `net9.0` DLL Mod referencing the game's `sts2.dll`, Harmony, and GodotSharp. The first-stage network implementation uses direct game APIs because its work is at the multiplayer boundary.
 
 ## Current Repository Structure
 
@@ -14,7 +14,7 @@ The expected stack is a `net9.0` Godot mod referencing the game's `sts2.dll`, Ha
 | `src/Networking/LobbyMetadata.cs` | Stable lobby metadata contract. |
 | `src/Networking/SteamLobbyMetadataPublisher.cs` | Reflection bridge from vanilla host to `SteamMatchmaking.SetLobbyData`. |
 | `src/Patches/HostLobbyPatches.cs` | Host/lobby lifecycle bindings confirmed by reference source. |
-| `src/Patches/RunningLobbyLifecyclePatch.cs` | Fail-closed runtime resolver for the unconfirmed run-start method. |
+| `src/Patches/RunningLobbyLifecyclePatch.cs` | `v0.109.0` host run-start lifecycle binding. |
 | `runtime-validation.md` | Required assembly inspection and multiplayer test matrix. |
 | `scripts/verify-static.sh` | Checks repository scope and Stage 0/1 artifacts without a game install. |
 
@@ -33,7 +33,7 @@ flowchart LR
 
 The first two bindings are supported by source inspection of the RMP reference: `NetHostGameService.StartSteamHost`, `StartRunLobby(GameMode, INetGameService, IStartRunLobbyListener, int)`, and `SteamHost.LobbyId` are used there. `SteamMatchmaking.SetLobbyData` is invoked reflectively, so the mod neither ships a Steamworks assembly nor creates a different transport.
 
-The last binding is deliberately dynamic. The cited source establishes that `RunLobby` owns running-session handling, but the precise game-build run-start method has not been inspected in the target `sts2.dll`. On failure the mod leaves `phase=lobby`, logs the target failure, and does not expose a running lobby.
+The last binding targets `StartRunLobby.BeginRunLocally`, verified against the local `v0.109.0` `sts2.dll`. The patch publishes `phase=running` only when the local service is the host.
 
 ## Target End-to-End Flow
 

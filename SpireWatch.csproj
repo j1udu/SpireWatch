@@ -1,4 +1,4 @@
-<Project Sdk="Godot.NET.Sdk/4.5.1">
+<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="local.props" Condition="Exists('local.props')" />
 
   <PropertyGroup>
@@ -9,7 +9,7 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <AssemblyName>SpireWatch</AssemblyName>
     <RootNamespace>SpireWatch</RootNamespace>
-    <Version>0.1.0-alpha.1</Version>
+    <Version>0.1.0-alpha.4</Version>
     <Sts2DataDirFromEnv>$([System.Environment]::GetEnvironmentVariable('STS2_DATA_DIR'))</Sts2DataDirFromEnv>
     <Sts2DataDir Condition="'$(Sts2DataDir)' == '' and '$(Sts2DataDirFromEnv)' != ''">$(Sts2DataDirFromEnv)</Sts2DataDir>
   </PropertyGroup>
@@ -19,11 +19,24 @@
     <Error Condition="!Exists('$(Sts2DataDir)/sts2.dll')" Text="sts2.dll was not found under '$(Sts2DataDir)'." />
     <Error Condition="!Exists('$(Sts2DataDir)/0Harmony.dll')" Text="0Harmony.dll was not found under '$(Sts2DataDir)'." />
     <Error Condition="!Exists('$(Sts2DataDir)/GodotSharp.dll')" Text="GodotSharp.dll was not found under '$(Sts2DataDir)'." />
+    <Error Condition="!Exists('$(Sts2DataDir)/Steamworks.NET.dll')" Text="Steamworks.NET.dll was not found under '$(Sts2DataDir)'." />
   </Target>
 
   <ItemGroup>
+    <Compile Remove="tools\**\*.cs" />
     <Reference Include="sts2"><HintPath>$(Sts2DataDir)/sts2.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(Sts2DataDir)/0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="GodotSharp"><HintPath>$(Sts2DataDir)/GodotSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Steamworks.NET"><HintPath>$(Sts2DataDir)/Steamworks.NET.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
+
+  <Target Name="DeployMod" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
+    <PropertyGroup>
+      <Sts2GameDir>$([System.IO.Path]::GetFullPath('$(Sts2DataDir)\..'))</Sts2GameDir>
+      <SpireWatchModDir>$(Sts2GameDir)\mods\SpireWatch</SpireWatchModDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(SpireWatchModDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SpireWatchModDir)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\SpireWatch.json" DestinationFolder="$(SpireWatchModDir)" />
+  </Target>
 </Project>
