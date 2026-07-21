@@ -11,13 +11,7 @@ $required = @(
     'SpireWatch.csproj',
     'SpireWatch.json',
     'src/ModEntry.cs',
-    'src/Spectating/ReadOnlySpectatorNetGameService.cs',
-    'src/Spectating/SpectatorJoinFlow.cs',
-    'src/Spectating/SteamFriendLobbyMetadata.cs',
-    'src/Patches/SpectatorPatches.cs',
-    'src/Patches/SpectatorReadOnlyInputPatches.cs',
-    'src/Patches/SpectatorFriendListPatch.cs',
-    'src/Patches/SpectatorSavePatch.cs'
+    'src/Patches/LobbyLifecycleSafetyPatches.cs'
 )
 
 foreach ($path in $required) {
@@ -38,10 +32,6 @@ if (-not (Select-String -Path 'src/Networking/SteamLobbyMetadataPublisher.cs' -P
     throw 'SteamMatchmaking metadata publisher is missing.'
 }
 
-if (-not (Select-String -Path 'src/Patches/SpectatorFriendListPatch.cs' -Pattern 'ShowFriends' -Quiet)) {
-    throw 'Vanilla friend-list spectator patch is missing.'
-}
-
 if (-not (Select-String -Path 'src/Patches/HostLobbyPatches.cs' -Pattern 'StartSteamHost' -Quiet)) {
     throw 'Steam host lifecycle patch is missing.'
 }
@@ -50,8 +40,12 @@ if (-not (Select-String -Path 'src/Patches/RunningLobbyLifecyclePatch.cs' -Patte
     throw 'Running lobby lifecycle patch is missing.'
 }
 
-if (-not (Select-String -Path 'src/Patches/SpectatorReadOnlyInputPatches.cs' -Pattern 'RequestEnqueue' -Quiet)) {
-    throw 'Spectator action-input patch is missing.'
+if (-not (Select-String -Path 'src/Patches/LobbyLifecycleSafetyPatches.cs' -Pattern 'CleanUp' -Quiet)) {
+    throw 'Running lobby cleanup patch is missing.'
 }
 
-Write-Output 'Static host and spectator checks passed.'
+if (rg -n 'SpectatorJoinFlow|ReadOnlySpectatorNetGameService|observedPlayerNetId|SpireWatchSpectatorJoinPanel' src) {
+    throw 'Unsafe spectator identity implementation found in src/.'
+}
+
+Write-Output 'Static Stage 0/1 checks passed.'

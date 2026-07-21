@@ -1,14 +1,12 @@
 # SpireWatch
 
-SpireWatch is a Slay the Spire 2 multiplayer mod that lets compatible players discover an already-running **SpireWatch** Steam lobby through the vanilla `Multiplayer -> Join Game` path and enter it as a read-only spectator.
+SpireWatch is a Slay the Spire 2 multiplayer mod for safely exposing the lifecycle of the existing Steam multiplayer lobby. Its final goal is read-only spectators through the vanilla `Multiplayer -> Join Game` flow.
 
 ## Status
 
-This repository contains an experimental spectator implementation for local game `v0.109.0`. The host keeps its existing Steam friends lobby open after the run starts, accepts a compatible running-session rejoin as a spectator, and broadcasts the existing game messages to that connection. The spectator loads the host snapshot through a read-only network service that impersonates no new player and rejects all game-message sends.
+This repository currently implements **Stage 0/1** for local game `v0.109.0`: the host marks its existing Steam lobby as `lobby`, `running`, or `closed`, and suppresses vanilla lobby closure only during an active host run. It does not yet display running rooms in the join list or admit spectators.
 
-Open `Multiplayer -> Join Game` and select the host's running SpireWatch room directly from the original friend-room list. SpireWatch reads that room's Steam lobby metadata before wiring its button: a compatible `phase=running` room starts the read-only spectator flow, while every other room keeps the original join flow. The Steam64-ID panel and `--spirewatch-spectate=<Steam64ID>` remain available as fallback entry points.
-
-Combat-state reconstruction has no public apply API in the local game assembly. Mid-combat visual restoration therefore remains unverified and must not be relied upon until a live two-account test confirms it. See [architecture.md](architecture.md) and [runtime-validation.md](runtime-validation.md).
+The prior snapshot path reused an existing player's NetId on the spectator client. That conflicts with the project's requirement that a Spectator is not a vanilla Player, so it was removed rather than exposed as an experimental feature. Stage 2 must add a versioned custom handshake and a mod-owned `SpectatorSession`; Stage 3 needs a view recovery path that never impersonates a Player. See [architecture.md](architecture.md) and [runtime-validation.md](runtime-validation.md).
 
 The design references and their licensing boundaries are recorded in [research-sources.md](research-sources.md).
 
@@ -34,7 +32,7 @@ The host writes these keys using `SteamMatchmaking.SetLobbyData` against `NetHos
 | Key | Meaning |
 | --- | --- |
 | `spirewatch=1` | This lobby supports the SpireWatch protocol. |
-| `phase=lobby|running` | `running` is the only non-vanilla state that will later be listed/joinable. |
+| `phase=lobby|running|closed` | `running` will later be the only non-vanilla state listed/joinable; `closed` prevents stale running metadata during cleanup. |
 | `protocol=1` | SpireWatch wire compatibility version. |
 | `mod_version` | Host mod assembly version. |
 | `spectator_count` | Current mod-owned spectator count; it does not affect vanilla player capacity. |
@@ -42,7 +40,6 @@ The host writes these keys using `SteamMatchmaking.SetLobbyData` against `NetHos
 ## Repository Boundaries
 
 - Steam Lobby and vanilla `INetGameService` remain the only transport.
-- Spectators are keyed by their real Steam NetId on the host but never enter host `RunState.Players`.
-- The game-version and gameplay-Mod compatibility checks remain owned by vanilla `JoinFlow`; SpireWatch is declared gameplay-affecting so it participates in that check.
-- The read-only service rejects all gameplay messages after the rejoin handshake, and replay/save writing is disabled for the spectator session.
+- No spectator connection or snapshot recovery is enabled until the protocol can maintain a separate `SpectatorSession` without a vanilla Player identity.
+- Future game-version, mod-version, protocol, RitsuLib, and dependency validation will be explicit host-side admission checks; metadata alone is not an admission decision.
 - Any code derived from references will respect their licenses. STS2-Agent is used only as a build-layout reference and is not copied.

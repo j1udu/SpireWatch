@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-SpireWatch extends an existing Slay the Spire 2 Steam multiplayer session. It must preserve the vanilla `Multiplayer -> Join Game` user flow and add only one allowed case: a compatible SpireWatch lobby whose run has started may be joined as a spectator.
+SpireWatch extends an existing Slay the Spire 2 Steam multiplayer session. It must preserve the vanilla `Multiplayer -> Join Game` user flow and eventually add one allowed case: a compatible SpireWatch lobby whose run has started may be joined as a spectator.
 
 The current stack is a `net9.0` DLL Mod referencing the game's `sts2.dll`, Harmony, and GodotSharp. The first-stage network implementation uses direct game APIs because its work is at the multiplayer boundary.
 
@@ -15,6 +15,7 @@ The current stack is a `net9.0` DLL Mod referencing the game's `sts2.dll`, Harmo
 | `src/Networking/SteamLobbyMetadataPublisher.cs` | Reflection bridge from vanilla host to `SteamMatchmaking.SetLobbyData`. |
 | `src/Patches/HostLobbyPatches.cs` | Host/lobby lifecycle bindings confirmed by reference source. |
 | `src/Patches/RunningLobbyLifecyclePatch.cs` | `v0.109.0` host run-start lifecycle binding. |
+| `src/Patches/LobbyLifecycleSafetyPatches.cs` | Limits lobby retention to active host runs and clears the running marker during cleanup. |
 | `runtime-validation.md` | Required assembly inspection and multiplayer test matrix. |
 | `scripts/verify-static.sh` | Checks repository scope and Stage 0/1 artifacts without a game install. |
 
@@ -29,6 +30,8 @@ flowchart LR
   F[StartRunLobby created] --> D
   G[Verified RunLobby start method] --> H[phase=running]
   H --> D
+  I[Vanilla run cleanup] --> J[phase=closed]
+  J --> D
 ```
 
 The first two bindings are supported by source inspection of the RMP reference: `NetHostGameService.StartSteamHost`, `StartRunLobby(GameMode, INetGameService, IStartRunLobbyListener, int)`, and `SteamHost.LobbyId` are used there. `SteamMatchmaking.SetLobbyData` is invoked reflectively, so the mod neither ships a Steamworks assembly nor creates a different transport.
@@ -39,9 +42,10 @@ The last binding targets `StartRunLobby.BeginRunLocally`, verified against the l
 
 1. The host creates and starts a normal vanilla Steam multiplayer lobby.
 2. SpireWatch writes `spirewatch`, protocol/version, spectator count, and phase keys to that same lobby.
-3. A later list-query patch will include only `spirewatch=1` and `phase=running` entries alongside ordinary waiting lobbies; ordinary running lobbies retain vanilla behavior.
-4. A later join patch sends running entries through a spectator handshake rather than vanilla player admission.
-5. The host validates versions, creates a mod-only `SpectatorSession`, sends a `SerializableRun` snapshot at a safe synchronization point, then forwards compatible vanilla action synchronization.
+3. A later list-query patch will include only `spirewatch=1` and `phase=running` entries alongside ordinary waiting lobbies; ordinary running lobbies retain vanilla behavior and the row will carry the `进行中 · 观战` status.
+4. A later join patch sends running entries through a versioned spectator handshake rather than vanilla player admission.
+5. The host validates game, SpireWatch protocol/version, RitsuLib, and declared dependencies before creating a mod-only `SpectatorSession`.
+6. Only after a safe-point admission does the host send a snapshot to a client recovery path that does not claim an existing player's NetId.
 
 ## Module Boundaries
 
@@ -55,13 +59,13 @@ The last binding targets `StartRunLobby.BeginRunLocally`, verified against the l
 
 ## Source Analysis Findings
 
-The DirectConnectIP reference demonstrates `JoinFlow.Begin` returning `RunSessionState.Running` with `ClientRejoinResponseMessage.serializableRun`; it then uses `RunState.FromSerializable`, `LoadRunLobby`, `RunManager.SetUpSavedMultiplayer`, and `NGame.LoadRun` to restore the run. This is the intended starting point for Stage 3, but it cannot be copied blindly because its normal rejoin path assumes a vanilla player identity.
+The DirectConnectIP reference demonstrates `JoinFlow.Begin` returning `RunSessionState.Running` with `ClientRejoinResponseMessage.serializableRun`; it then uses `RunState.FromSerializable`, `LoadRunLobby`, `RunManager.SetUpSavedMultiplayer`, and `NGame.LoadRun` to restore the run. This is useful evidence for Stage 3, but its normal rejoin path assumes a vanilla player identity and is therefore not usable for SpireWatch unchanged.
 
 RMP demonstrates custom `INetMessage` registration through `INetGameService.RegisterMessageHandler<T>` and side-by-side protocol traffic. This supports the Stage 2 handshake design without replacing the vanilla connection service.
 
 ## Risks and Explicit Non-Goals
 
 - Room-list internals, UI row data, and JoinFlow admission signatures are version-sensitive and must be read from the installed `sts2.dll` before patching.
-- Publishing metadata alone does not make running rooms discoverable; the query/filter patch is pending assembly analysis.
-- The dynamic running-state hook needs live verification for call timing and host-only execution.
+- Publishing metadata alone does not make running rooms discoverable or joinable; the query, host handshake, and independent recovery path are pending implementation.
+- Lobby retention and cleanup timing need live Steam verification on the target game build.
 - No HTTP, WebSocket, external backend, parallel lobby, chat, password, friend filter, kick action, or player impersonation is present.

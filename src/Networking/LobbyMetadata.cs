@@ -5,7 +5,8 @@ namespace SpireWatch.Networking;
 internal enum LobbyPhase
 {
     Lobby,
-    Running
+    Running,
+    Closed
 }
 
 /// <summary>Stable keys written to the existing Steam lobby; no parallel lobby is created.</summary>
@@ -22,7 +23,12 @@ internal static class LobbyMetadata
         return new Dictionary<string, string>
         {
             [EnabledKey] = "1",
-            [PhaseKey] = phase == LobbyPhase.Running ? "running" : "lobby",
+            [PhaseKey] = phase switch
+            {
+                LobbyPhase.Running => "running",
+                LobbyPhase.Closed => "closed",
+                _ => "lobby"
+            },
             [ProtocolKey] = ModInfo.ProtocolVersion.ToString(),
             [ModVersionKey] = modVersion,
             [SpectatorCountKey] = spectatorCount.ToString()

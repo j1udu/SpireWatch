@@ -1,8 +1,6 @@
 using HarmonyLib;
-using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
-using SpireWatch.Spectating;
 
 namespace SpireWatch;
 
@@ -16,8 +14,6 @@ public static class ModEntry
         var harmony = new Harmony(ModInfo.HarmonyId);
         harmony.PatchAll(typeof(ModEntry).Assembly);
 
-        SpectatorBootstrap.InstallOn(NGame.Instance);
-
-        Log.Info($"[{ModInfo.Id}] Lobby metadata publisher is ready for STS2 v0.109.0.");
+        Log.Info($"[{ModInfo.Id}] Stage 1 lobby metadata publisher is ready for STS2 v0.109.0.");
     }
 }
