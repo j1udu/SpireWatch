@@ -4,6 +4,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Runs;
 using SpireWatch.Networking;
+using SpireWatch.Spectating;
 
 namespace SpireWatch.Patches;
 
@@ -57,7 +58,9 @@ internal static class ClearRunningLobbyMetadataPatch
         if (__instance.NetService?.Type == NetGameType.Host)
         {
             SteamLobbyMetadataPublisher.TryPublish(__instance.NetService, LobbyPhase.Closed);
+            SpectatorRegistry.ClearHostSpectators();
         }
+        SpectatorRegistry.EndLocalSpectating();
     }
 
     private static System.Exception? Finalizer(System.Exception? __exception)

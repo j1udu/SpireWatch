@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-SpireWatch extends an existing Slay the Spire 2 Steam multiplayer session. It must preserve the vanilla `Multiplayer -> Join Game` user flow and eventually add one allowed case: a compatible SpireWatch lobby whose run has started may be joined as a spectator.
+SpireWatch extends an existing Slay the Spire 2 Steam multiplayer session. It preserves the vanilla `Multiplayer -> Join Game` user flow and adds one allowed case: a compatible SpireWatch lobby whose run has started may be joined as a spectator.
 
 The current stack is a `net9.0` DLL Mod referencing the game's `sts2.dll`, Harmony, and GodotSharp. The first-stage network implementation uses direct game APIs because its work is at the multiplayer boundary.
 
@@ -16,6 +16,8 @@ The current stack is a `net9.0` DLL Mod referencing the game's `sts2.dll`, Harmo
 | `src/Patches/HostLobbyPatches.cs` | Host/lobby lifecycle bindings confirmed by reference source. |
 | `src/Patches/RunningLobbyLifecyclePatch.cs` | `v0.109.0` host run-start lifecycle binding. |
 | `src/Patches/LobbyLifecycleSafetyPatches.cs` | Limits lobby retention to active host runs and clears the running marker during cleanup. |
+| `src/Spectating/SpectatorProtocol.cs` | Host/client protocol challenge before running-session rejoin admission. |
+| `src/Spectating/SpectatorJoinSafety.cs` | Conservative host-side safe-point gate. |
 | `runtime-validation.md` | Required assembly inspection and multiplayer test matrix. |
 | `scripts/verify-static.sh` | Checks repository scope and Stage 0/1 artifacts without a game install. |
 
@@ -42,10 +44,10 @@ The last binding targets `StartRunLobby.BeginRunLocally`, verified against the l
 
 1. The host creates and starts a normal vanilla Steam multiplayer lobby.
 2. SpireWatch writes `spirewatch`, protocol/version, spectator count, and phase keys to that same lobby.
-3. A later list-query patch will include only `spirewatch=1` and `phase=running` entries alongside ordinary waiting lobbies; ordinary running lobbies retain vanilla behavior and the row will carry the `进行中 · 观战` status.
-4. A later join patch sends running entries through a versioned spectator handshake rather than vanilla player admission.
-5. The host validates game, SpireWatch protocol/version, RitsuLib, and declared dependencies before creating a mod-only `SpectatorSession`.
-6. Only after a safe-point admission does the host send a snapshot to a client recovery path that does not claim an existing player's NetId.
+3. The friend-room patch includes only compatible `spirewatch=1` and `phase=running` entries in the spectator branch; ordinary waiting rooms retain vanilla joining and running rows carry `进行中 · 观战`.
+4. A running-room click starts the versioned protocol challenge before the rejoin admission path.
+5. The host validates the SpireWatch wire version and a conservative safe point before creating a mod-only `SpectatorSession` and sending a snapshot.
+6. The client restores a read-only projection through the current vanilla UI bridge. This is an explicit temporary limitation: it still relies on an observed Player NetId and must be replaced by an independent spectator view.
 
 ## Module Boundaries
 
@@ -66,6 +68,6 @@ RMP demonstrates custom `INetMessage` registration through `INetGameService.Regi
 ## Risks and Explicit Non-Goals
 
 - Room-list internals, UI row data, and JoinFlow admission signatures are version-sensitive and must be read from the installed `sts2.dll` before patching.
-- Publishing metadata alone does not make running rooms discoverable or joinable; the query, host handshake, and independent recovery path are pending implementation.
-- Lobby retention and cleanup timing need live Steam verification on the target game build.
+- The current safe-point gate rejects all active combat. Shop, reward, event and map recovery still require two-account visual verification.
+- Lobby retention, protocol-message ordering, and cleanup timing need live Steam verification on the target game build.
 - No HTTP, WebSocket, external backend, parallel lobby, chat, password, friend filter, kick action, or player impersonation is present.

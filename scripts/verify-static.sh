@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-required=(README.md architecture.md runtime-validation.md research-sources.md SpireWatch.csproj SpireWatch.json src/ModEntry.cs src/Patches/LobbyLifecycleSafetyPatches.cs)
+required=(README.md architecture.md runtime-validation.md research-sources.md SpireWatch.csproj SpireWatch.json src/ModEntry.cs src/Patches/LobbyLifecycleSafetyPatches.cs src/Patches/SpectatorFriendListPatch.cs src/Patches/SpectatorPatches.cs src/Spectating/SpectatorProtocol.cs src/Spectating/SpectatorJoinSafety.cs)
 for path in "${required[@]}"; do
   [[ -f "$path" ]] || { echo "Missing required file: $path" >&2; exit 1; }
 done
@@ -19,8 +19,11 @@ rg -q 'SteamMatchmaking' src/Networking/SteamLobbyMetadataPublisher.cs
 rg -q 'StartSteamHost' src/Patches/HostLobbyPatches.cs
 rg -q 'BeginRunLocally' src/Patches/RunningLobbyLifecyclePatch.cs
 rg -q 'CleanUp' src/Patches/LobbyLifecycleSafetyPatches.cs
-if rg -n 'SpectatorJoinFlow|ReadOnlySpectatorNetGameService|observedPlayerNetId|SpireWatchSpectatorJoinPanel' src; then
-  echo "Unsafe spectator identity implementation found in src/." >&2
+rg -q 'SpectatorChallengeMessage' src/Spectating/SpectatorProtocol.cs
+rg -q 'TryAuthorizeHostPeer' src/Patches/SpectatorPatches.cs
+rg -q 'IsSafeHostJoinPoint' src/Patches/SpectatorPatches.cs
+if rg -n 'SpectatorJoinPanel|SpectatorBootstrap|spirewatch-spectate' src; then
+  echo "Forbidden standalone spectator entry point found in src/." >&2
   exit 1
 fi
-echo "Static Stage 0/1 checks passed."
+echo "Static spectator checks passed."

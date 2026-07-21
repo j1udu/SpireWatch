@@ -8,8 +8,8 @@
 | Existing Steam lobby accepts metadata | Local `v0.109.0` `SteamMatchmaking.SetLobbyData` inspection; publisher uses reflection | Target-confirmed, live pending |
 | `StartRunLobby` constructor signature | Local `v0.109.0` inspection | Target-confirmed |
 | `StartRunLobby.BeginRunLocally` is the host run-start transition | Local `v0.109.0` inspection | Target-confirmed, live pending |
-| Running connection can carry `SerializableRun` | Local `JoinFlow`, `RunLobby`, and `RunManager.GetRejoinMessage` inspection | Target-confirmed, not used until independent spectator recovery exists |
-| Vanilla join-room list can include running friend rooms | Local `NJoinFriendScreen.ShowFriends`, `SteamPlatformUtilStrategy.GetFriendsWithOpenLobbies`, and Steamworks `RequestLobbyData` inspection | Target-confirmed, query patch pending |
+| Running connection can carry `SerializableRun` | Local `JoinFlow`, `RunLobby`, and `RunManager.GetRejoinMessage` inspection | Target-confirmed, live pending |
+| Vanilla join-room list can include running friend rooms | Local `NJoinFriendScreen.ShowFriends`, `SteamPlatformUtilStrategy.GetFriendsWithOpenLobbies`, and Steamworks `RequestLobbyData` inspection | Target-confirmed, live pending |
 | Host can retain the lobby after run start | No live Steam session available | Unverified |
 
 ## Required Assembly Investigation
@@ -29,17 +29,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-game-contra
 
 The friend-list binding uses these inspected `v0.109.0` members:
 
-The inspected friend-list APIs remain the Stage 2 target. They are not patched in the current safety-first build because the matching host admission and independent spectator recovery path do not yet exist.
+The friend-list patch reads `spirewatch=1`, `phase=running`, matching `protocol`, and matching `mod_version` before sending a row through `SpectatorJoinFlow`. The host independently requires `SpectatorChallengeMessage` / `SpectatorHelloMessage` before it accepts the vanilla rejoin request.
 
-## Stage 1 Live Test Matrix
+## Spectator Live Test Matrix
 
 Run with Steam online and two compatible mod installations:
 
 1. Host a normal multiplayer lobby. Confirm the original lobby receives `spirewatch=1`, `phase=lobby`, protocol, mod version, and `spectator_count=0`.
 2. Add/remove a vanilla player before start. Confirm normal joining is unchanged and no player limit changes.
 3. Start the run. Confirm the same Steam `LobbyId` remains friends-joinable and its phase changes to `running`.
-4. End or abandon the run. Confirm `phase` is changed to `closed` before vanilla cleanup and that a future normal lobby starts at `phase=lobby`.
-5. Confirm a running room is not yet shown or joinable as a spectator in this build; normal waiting-room joining remains vanilla.
+4. On the second account, open `Multiplayer -> Join Game`, refresh the original friend-room list, and confirm the running room carries `进行中 · 观战`.
+5. Confirm a mismatched protocol or `mod_version` does not enter the spectator branch, and the host rejects a missing protocol challenge response.
+6. Confirm an active combat rejects a new spectator; map, shop, reward, event, rest and chest joins must be tested separately.
+7. Attempt cards, end turn, map selection, rewards, event options, purchases and campfire actions on the spectator. Confirm host state is unchanged.
+8. Disconnect the spectator and end the run. Confirm local controls are restored, host `RunState.Players` is unchanged, and the Lobby phase becomes `closed` during cleanup.
 
 ## Stage 2-4 Acceptance Gates
 

@@ -4,9 +4,11 @@ SpireWatch 是《杀戮尖塔 2》多人 Mod，用于安全地扩展原版 Steam
 
 ## 当前状态
 
-本仓库当前实现 **阶段 0/1**，面向本地已分析的游戏版本 `v0.109.0`：房主会在原版 Steam Lobby 中写入 `lobby`、`running` 或 `closed` 状态；仅在房主局实际进行期间阻止原版关闭该 Lobby。当前版本**不会**在加入房间列表中展示进行中的房间，也不会接纳观战者。
+本仓库当前包含实验性的观战加入实现，面向已分析的游戏版本 `v0.109.0`。房主会在原版 Steam Lobby 中写入 `lobby`、`running` 或 `closed` 状态，并仅在房主局实际进行期间保留 Lobby。原版好友房间列表中的兼容 running Lobby 会显示“进行中 · 观战”，点击后进入只读观战流程；普通等待房间仍走原版加入流程。
 
-此前的快照恢复方案在观战端复用了已有原版玩家的 `NetId`。这违反了 Spectator 不是原版 Player 的项目约束，因此该路径已被移除，而非作为实验功能保留。阶段 2 需要实现带版本校验的自定义握手和 Mod 自己维护的 `SpectatorSession`；阶段 3 需要实现绝不冒用 Player 身份的局面恢复路径。详见 [architecture.md](architecture.md) 与 [runtime-validation.md](runtime-validation.md)。
+观战加入前，客户端会校验 Lobby 的 `protocol` 和 `mod_version`；host 会发送 SpireWatch 协议挑战，并在原版重连请求前验证回应。host 只允许非战斗状态且当前房间可序列化时发送快照。观战端在 UI、动作请求和所有 `INetGameService.SendMessage` 路径上拦截可变操作，并在失败、断线和 `RunManager.CleanUp` 时清除本地观战状态。
+
+当前局面恢复仍通过一个隔离的只读“玩家投影”桥接原版 `LoadRunLobby` UI；它不会在 host `RunState.Players` 中创建 Player，但尚不等同于最终独立的 Spectator 视图。后续阶段必须替换这一桥接，彻底移除对 Player NetId 的依赖。详见 [architecture.md](architecture.md) 与 [runtime-validation.md](runtime-validation.md)。
 
 参考仓库、版本和许可证边界记录在 [research-sources.md](research-sources.md)。
 
@@ -40,6 +42,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-game-contra
 ## 工程边界
 
 - Steam Lobby 与原版 `INetGameService` 是唯一的联机传输方式。
-- 在协议可以维护独立 `SpectatorSession` 且不使用任何原版 Player 身份前，不会启用观战连接或快照恢复。
-- 未来会在房主侧显式校验游戏版本、Mod 版本、协议、RitsuLib 和依赖；Lobby 元数据本身不是入场许可。
+- host 以 Mod 自己维护的 `SpectatorSession` 记录观战者，不会把观战者插入 `RunState.Players`。
+- 当前会显式校验协议和 Lobby Mod 版本；游戏版本、游戏性 Mod 和依赖兼容性仍由原版 `JoinFlow` 及 `affects_gameplay` 清单参与校验。RitsuLib 的显式版本拒绝仍待加入。
 - 对参考仓库的使用遵守其许可证边界；STS2-Agent 仅用于构建布局参考，未复制其源代码。

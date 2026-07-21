@@ -89,7 +89,32 @@ try
         "CleanUp",
         method => method.GetParameters() is [{ ParameterType: var gracefulType }] && gracefulType == typeof(bool));
 
-    Console.WriteLine("STS2 v0.109.0 Stage 1 lobby lifecycle contract checks passed.");
+    var runLobby = RequireType(assembly, "MegaCrit.Sts2.Core.Multiplayer.Game.Lobby.RunLobby");
+    RequireSingleMethod(
+        runLobby,
+        "OnConnectedToClientAsHost",
+        method => method.GetParameters() is [{ ParameterType: var peerIdType }] && peerIdType == typeof(ulong));
+    RequireSingleMethod(
+        runLobby,
+        "HandleClientRejoinRequestMessage",
+        method => method.GetParameters() is [
+            { ParameterType.FullName: "MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.ClientRejoinRequestMessage" },
+            { ParameterType: var peerIdType }
+        ] && peerIdType == typeof(ulong));
+
+    var combatManager = RequireType(assembly, "MegaCrit.Sts2.Core.Combat.CombatManager");
+    RequireSingleMethod(
+        combatManager,
+        "SetReadyToEndTurn",
+        method => method.ReturnType == typeof(void));
+
+    var mapSelectionSynchronizer = RequireType(assembly, "MegaCrit.Sts2.Core.Multiplayer.Game.MapSelectionSynchronizer");
+    RequireSingleMethod(
+        mapSelectionSynchronizer,
+        "PlayerVotedForMapCoord",
+        method => method.ReturnType == typeof(void));
+
+    Console.WriteLine("STS2 v0.109.0 lobby and spectator contract checks passed.");
     return 0;
 }
 catch (Exception exception)

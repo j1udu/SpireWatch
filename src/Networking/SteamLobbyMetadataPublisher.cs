@@ -14,8 +14,6 @@ namespace SpireWatch.Networking;
 /// </summary>
 internal static class SteamLobbyMetadataPublisher
 {
-    private static readonly string ModVersion = typeof(SteamLobbyMetadataPublisher).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
-
     internal static bool TryPublish(INetGameService netService, LobbyPhase phase, int spectatorCount = 0)
     {
         if (netService is not NetHostGameService hostService)
@@ -40,7 +38,7 @@ internal static class SteamLobbyMetadataPublisher
                 return false;
             }
 
-            foreach (var entry in LobbyMetadata.Create(phase, ModVersion, spectatorCount))
+            foreach (var entry in LobbyMetadata.Create(phase, ModInfo.Version, spectatorCount))
             {
                 setLobbyData.Invoke(null, new[] { lobbyId, entry.Key, entry.Value });
             }
