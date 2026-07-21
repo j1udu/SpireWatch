@@ -27,6 +27,40 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-game-contra
 
 构建时附加 `/p:DeployToGame=true` 可将 DLL 和 Manifest 复制到游戏的 Mods 目录。仓库不包含任何游戏 DLL 或 Steamworks DLL。
 
+## 玩家安装
+
+当前仓库尚未发布可直接下载的 Release 包。发布后，解压并将以下两个文件放到游戏的 `mods/SpireWatch/` 目录：
+
+```text
+SpireWatch.dll
+SpireWatch.json
+```
+
+目录应如下所示：
+
+```text
+<Slay the Spire 2>/
+  mods/
+    SpireWatch/
+      SpireWatch.dll
+      SpireWatch.json
+```
+
+- Windows / Linux：`<Slay the Spire 2>/mods/SpireWatch/`
+- macOS：`<SlayTheSpire2.app>/Contents/MacOS/mods/SpireWatch/`
+
+如果暂时从源码安装，在已配置 `local.props` 后运行：
+
+```powershell
+dotnet build SpireWatch.csproj -c Release /p:DeployToGame=true
+```
+
+这会把生成的 DLL 与 Manifest 复制到上述目录。不要复制 `sts2.dll`、`Steamworks.NET.dll` 或其他游戏程序集。
+
+联机时，房主、普通玩家和观战者都必须使用兼容的游戏版本，并安装**完全相同版本**的 SpireWatch；所有影响游戏性的其他 Mod 也应保持一致。启动游戏后由房主按原版方式创建多人房间，开局后观战者从原版“多人游戏 -> 加入房间”的好友房间列表点击标有“进行中 · 观战”的房间。
+
+> 当前观战功能仍为实验性实现。首次联机请优先在非战斗安全点测试，并保留游戏日志以便排查问题。
+
 ## Lobby 协议元数据
 
 房主通过 `NetHostGameService.NetHost.LobbyId` 定位原版 Steam Lobby，并使用 `SteamMatchmaking.SetLobbyData` 写入以下键：
