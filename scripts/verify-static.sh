@@ -9,7 +9,7 @@ for path in "${required[@]}"; do
   [[ -f "$path" ]] || { echo "Missing required file: $path" >&2; exit 1; }
 done
 
-if rg -n -i 'HttpListener|HttpServer|WebSocket|TcpListener|localhost|127\.0\.0\.1' src; then
+if rg -n -i -w 'HttpListener|HttpServer|WebSocket|TcpListener|localhost|127\.0\.0\.1' src; then
   echo "Forbidden external transport found in src/." >&2
   exit 1
 fi

@@ -62,6 +62,30 @@ try
     {
         throw new InvalidOperationException("Missing required StartRunLobby(GameMode, INetGameService, IStartRunLobbyListener, Int32) constructor.");
     }
+    RequireEvent(startRunLobby, "PlayerConnected", "System.Action`1");
+    RequireEvent(startRunLobby, "PlayerDisconnected", "System.Action`1");
+    RequireSingleMethod(
+        startRunLobby,
+        "ChangeCharacter",
+        method => method.GetParameters() is [
+            { ParameterType: var playerIdType },
+            { ParameterType.FullName: "MegaCrit.Sts2.Core.Models.CharacterModel" },
+            _,
+        ] && playerIdType == typeof(ulong));
+    RequireSingleMethod(
+        startRunLobby,
+        "HandlePlayerReadyMessage",
+        method => method.GetParameters() is [
+            { ParameterType.FullName: "MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.LobbyPlayerSetReadyMessage" },
+            { ParameterType: var playerIdType },
+        ] && playerIdType == typeof(ulong));
+    RequireSingleMethod(
+        startRunLobby,
+        "AddLocalHostPlayerInternal",
+        method => method.GetParameters() is [
+            { ParameterType.FullName: "MegaCrit.Sts2.Core.Multiplayer.Serialization.SerializableUnlockState" },
+            { ParameterType: var maxAscensionType },
+        ] && maxAscensionType == typeof(int));
 
     var beginRunLocally = RequireSingleMethod(
         startRunLobby,
@@ -114,6 +138,24 @@ try
         "PlayerVotedForMapCoord",
         method => method.ReturnType == typeof(void));
 
+    var settingsTabManager = RequireType(assembly, "MegaCrit.Sts2.Core.Nodes.Screens.Settings.NSettingsTabManager");
+    RequireSingleMethod(settingsTabManager, "_Ready", method => method.GetParameters().Length == 0);
+    RequireSingleMethod(
+        settingsTabManager,
+        "SwitchTabTo",
+        method => method.GetParameters() is [{ ParameterType.FullName: "MegaCrit.Sts2.Core.Nodes.Screens.Settings.NSettingsTab" }]);
+    var tabsField = settingsTabManager.GetField("_tabs", BindingFlags.Instance | BindingFlags.NonPublic);
+    if (tabsField?.FieldType.FullName != "System.Collections.Generic.Dictionary`2")
+    {
+        throw new InvalidOperationException("Missing required NSettingsTabManager._tabs dictionary.");
+    }
+
+    var settingsPanel = RequireType(assembly, "MegaCrit.Sts2.Core.Nodes.Screens.Settings.NSettingsPanel");
+    if (settingsPanel.GetProperty("Content", BindingFlags.Instance | BindingFlags.Public)?.PropertyType.FullName != "Godot.VBoxContainer")
+    {
+        throw new InvalidOperationException("Missing required NSettingsPanel.Content VBoxContainer property.");
+    }
+
     Console.WriteLine("STS2 v0.109.0 lobby and spectator contract checks passed.");
     return 0;
 }
@@ -140,4 +182,13 @@ static MethodInfo RequireSingleMethod(Type type, string name, Func<MethodInfo, b
         0 => throw new InvalidOperationException($"Missing required method: {type.FullName}.{name}"),
         _ => throw new InvalidOperationException($"More than one required method matched: {type.FullName}.{name}")
     };
+}
+
+static void RequireEvent(Type type, string name, string eventHandlerTypePrefix)
+{
+    var eventInfo = type.GetEvent(name, BindingFlags.Public | BindingFlags.Instance);
+    if (eventInfo?.EventHandlerType?.FullName?.StartsWith(eventHandlerTypePrefix, StringComparison.Ordinal) != true)
+    {
+        throw new InvalidOperationException($"Missing required event: {type.FullName}.{name}");
+    }
 }
