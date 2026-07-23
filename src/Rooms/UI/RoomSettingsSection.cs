@@ -139,7 +139,10 @@ internal sealed class RoomSettingsSection : VBoxContainer
 
         foreach (var member in RoomRoster.Members)
         {
-            _memberList.AddChildSafely(new RoomMemberRow(member));
+            var onSelected = SpectatorRegistry.IsLocalSpectator && member.Role == RoomMemberRole.Playing
+                ? new Action<ulong>(playerId => _ = SpectatorViewSwitch.Request(playerId))
+                : null;
+            _memberList.AddChildSafely(new RoomMemberRow(member, onSelected));
         }
 
         if (RoomRoster.Members.Count == 0)
@@ -166,6 +169,7 @@ internal sealed class RoomSettingsSection : VBoxContainer
         finally
         {
             SpectatorRegistry.EndLocalSpectating();
+            SpectatorViewSwitch.EndLocalSession();
             RoomRosterProtocol.UnbindActive();
             RoomRoster.Clear();
         }

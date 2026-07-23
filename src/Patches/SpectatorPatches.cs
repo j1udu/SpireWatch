@@ -33,6 +33,7 @@ internal static class RunLobbySpectatorConnectionPatch
         }
 
         SpectatorProtocol.EnsureHostBound(hostService);
+        SpectatorViewSwitch.EnsureHostBound(hostService);
         hostService.SendMessage(new SpectatorChallengeMessage(), playerId);
         var message = InitialGameInfoMessage.Basic();
         message.sessionState = RunSessionState.Running;

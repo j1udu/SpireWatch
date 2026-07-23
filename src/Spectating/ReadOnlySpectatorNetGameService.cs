@@ -11,6 +11,7 @@ namespace SpireWatch.Spectating;
 internal sealed class ReadOnlySpectatorNetGameService : INetGameService
 {
     private readonly INetGameService _inner;
+    private bool _suppressNextDisconnect;
 
     internal ReadOnlySpectatorNetGameService(INetGameService inner, ulong projectedPlayerNetId)
     {
@@ -63,7 +64,19 @@ internal sealed class ReadOnlySpectatorNetGameService : INetGameService
 
     public void Disconnect(NetError reason, bool now = false)
     {
+        if (_suppressNextDisconnect)
+        {
+            _suppressNextDisconnect = false;
+            Log.Info($"[{ModInfo.Id}] Preserved spectator transport during local snapshot reload.");
+            return;
+        }
+
         _inner.Disconnect(reason, now);
+    }
+
+    internal void SuppressNextDisconnect()
+    {
+        _suppressNextDisconnect = true;
     }
 
     public ConnectionStats? GetStatsForPeer(ulong peerId)

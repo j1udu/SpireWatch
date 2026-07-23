@@ -66,6 +66,13 @@ Run with Steam online and two compatible mod installations:
 2. Select it. Confirm the spectator leaves the run, the host removes only its Mod-owned `SpectatorSession`, and every remaining client receives a roster without that eye-icon row.
 3. Confirm the host run continues and neither player count nor `RunState.Players` changes.
 
+## M4 Spectator View Switch Test
+
+1. Join a safe running room as a spectator. In `房间`, click another playing-member row. Confirm the host returns a fresh snapshot, the observer briefly reloads, and the resulting local projection targets the selected player.
+2. Repeat rapidly. Confirm subsequent row clicks are ignored for three seconds and the host does not receive a request storm.
+3. Attempt a switch during active combat. Confirm it is refused with no local cleanup or transport disconnect.
+4. After a successful switch, leave the room. Confirm the underlying Steam session disconnects once and no stale switch-message handler remains registered.
+
 ## Stage 2-4 Acceptance Gates
 
 - All endpoints refuse game, mod protocol, RitsuLib, and dependency mismatches with a user-visible reason.

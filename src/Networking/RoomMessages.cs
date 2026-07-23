@@ -79,6 +79,58 @@ public struct RoomRosterSnapshotMessage : INetMessage, IPacketSerializable
     }
 }
 
+public struct SpectatorSwitchTargetRequestMessage : INetMessage, IPacketSerializable
+{
+    public ulong RequestedPlayerNetId;
+
+    public readonly bool ShouldBroadcast => false;
+    public readonly NetTransferMode Mode => NetTransferMode.Reliable;
+    public readonly LogLevel LogLevel => LogLevel.Info;
+
+    public readonly void Serialize(PacketWriter writer) => writer.WriteULong(RequestedPlayerNetId);
+
+    public void Deserialize(PacketReader reader) => RequestedPlayerNetId = reader.ReadULong();
+}
+
+public struct SpectatorSwitchTargetResponseMessage : INetMessage, IPacketSerializable
+{
+    public bool Accepted;
+    public string FailureReason;
+    public ulong NewObservedPlayerNetId;
+    public MegaCrit.Sts2.Core.Saves.SerializableRun SerializableRun;
+
+    public readonly bool ShouldBroadcast => false;
+    public readonly NetTransferMode Mode => NetTransferMode.Reliable;
+    public readonly LogLevel LogLevel => LogLevel.Info;
+
+    public readonly void Serialize(PacketWriter writer)
+    {
+        writer.WriteBool(Accepted);
+        if (!Accepted)
+        {
+            writer.WriteString(FailureReason ?? string.Empty);
+            return;
+        }
+
+        writer.WriteULong(NewObservedPlayerNetId);
+        writer.Write(SerializableRun);
+    }
+
+    public void Deserialize(PacketReader reader)
+    {
+        Accepted = reader.ReadBool();
+        if (!Accepted)
+        {
+            FailureReason = reader.ReadString();
+            return;
+        }
+
+        NewObservedPlayerNetId = reader.ReadULong();
+        SerializableRun = reader.Read<MegaCrit.Sts2.Core.Saves.SerializableRun>();
+        FailureReason = string.Empty;
+    }
+}
+
 /// <summary>Owns the custom roster message handler for the active vanilla network service.</summary>
 internal static class RoomRosterProtocol
 {

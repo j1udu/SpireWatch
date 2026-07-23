@@ -76,6 +76,8 @@ The host broadcasts after player/spectator membership changes and sends a target
 
 The native settings section exposes `离开房间` only to a local spectator. It calls the original network service's disconnect path and then clears local Mod state; the host continues to use its existing `RunLobby` disconnect callback to remove the `SpectatorSession` and publish the replacement roster. Real players do not receive this action because their leave/reconnect behavior remains original-game ownership.
 
+For a local spectator, clicking a playing-member row requests a view switch. The host verifies that the requester is a current `SpectatorSession`, validates the target against `RunState.Players`, and applies the existing safe-point gate. It then returns a fresh `SerializableRun`. The spectator performs a local cleanup with exactly one underlying transport disconnect suppressed, rebuilds the read-only projection using the requested player's NetId, and loads the new snapshot. This is a reload, not a seamless camera switch; requests have a three-second cooldown and combat-time switches remain refused.
+
 ## Source Analysis Findings
 
 The DirectConnectIP reference demonstrates `JoinFlow.Begin` returning `RunSessionState.Running` with `ClientRejoinResponseMessage.serializableRun`; it then uses `RunState.FromSerializable`, `LoadRunLobby`, `RunManager.SetUpSavedMultiplayer`, and `NGame.LoadRun` to restore the run. This is useful evidence for Stage 3, but its normal rejoin path assumes a vanilla player identity and is therefore not usable for SpireWatch unchanged.

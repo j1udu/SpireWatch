@@ -1,3 +1,4 @@
+using System;
 using Godot;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using SpireWatch.Rooms;
@@ -10,12 +11,20 @@ internal sealed class RoomMemberRow : HBoxContainer
     private readonly RoomSpectatorIcon _spectatorIcon;
     private readonly Label _nameLabel;
     private readonly Label _statusLabel;
+    private readonly Action<ulong>? _onPlayingMemberSelected;
+    private ulong _memberNetId;
 
-    internal RoomMemberRow(RoomMember member)
+    internal RoomMemberRow(RoomMember member, Action<ulong>? onPlayingMemberSelected = null)
     {
         CustomMinimumSize = new Vector2(0f, 42f);
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
         AddThemeConstantOverride("separation", 12);
+        _onPlayingMemberSelected = onPlayingMemberSelected;
+        MouseFilter = onPlayingMemberSelected is null ? MouseFilterEnum.Ignore : MouseFilterEnum.Stop;
+        if (onPlayingMemberSelected is not null)
+        {
+            GuiInput += OnGuiInput;
+        }
 
         _characterIcon = new TextureRect
         {
@@ -54,12 +63,21 @@ internal sealed class RoomMemberRow : HBoxContainer
 
     internal void UpdateMember(RoomMember member)
     {
+        _memberNetId = member.NetId;
         var isSpectator = member.Role == RoomMemberRole.Spectating;
         _characterIcon.Visible = !isSpectator;
         _characterIcon.Texture = isSpectator ? null : member.Character?.IconTexture;
         _spectatorIcon.Visible = isSpectator;
         _nameLabel.Text = member.DisplayName;
         _statusLabel.Text = GetStatus(member);
+    }
+
+    private void OnGuiInput(InputEvent inputEvent)
+    {
+        if (inputEvent is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false })
+        {
+            _onPlayingMemberSelected?.Invoke(_memberNetId);
+        }
     }
 
     private static string GetStatus(RoomMember member)

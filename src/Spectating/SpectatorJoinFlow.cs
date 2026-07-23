@@ -54,16 +54,32 @@ internal static class SpectatorJoinFlow
             throw new InvalidOperationException("The host sent a run snapshot without players.");
         }
 
+        await LoadSnapshotAsync(networkService, hostSteamId, rejoinResponse.serializableRun, observedPlayer.NetId);
+        SpectatorViewSwitch.BindClient(networkService, hostSteamId);
+    }
+
+    internal static async Task LoadSnapshotAsync(
+        INetGameService networkService,
+        ulong hostSteamId,
+        MegaCrit.Sts2.Core.Saves.SerializableRun serializableRun,
+        ulong observedPlayerNetId)
+    {
+        var observedPlayer = serializableRun.Players.FirstOrDefault(player => player.NetId == observedPlayerNetId);
+        if (observedPlayer is null)
+        {
+            throw new InvalidOperationException($"The host snapshot does not contain observed player {observedPlayerNetId}.");
+        }
+
         SpectatorRegistry.BeginLocalSpectating();
         var spectatorService = new ReadOnlySpectatorNetGameService(networkService, observedPlayer.NetId);
-        var loadLobby = new LoadRunLobby(spectatorService, new SpectatorLoadRunLobbyListener(), rejoinResponse.serializableRun);
+        var loadLobby = new LoadRunLobby(spectatorService, new SpectatorLoadRunLobbyListener(), serializableRun);
         var runWasLoaded = false;
         var setupStarted = false;
         var stage = "deserializing snapshot";
         try
         {
             Log.Info($"[{ModInfo.Id}] Received spectator snapshot from {hostSteamId}; projecting player {observedPlayer.NetId} in read-only mode.");
-            var runState = RunState.FromSerializable(rejoinResponse.serializableRun);
+            var runState = RunState.FromSerializable(serializableRun);
             stage = "setting up multiplayer state";
             setupStarted = true;
             Log.Info($"[{ModInfo.Id}] Spectator stage: {stage}.");
@@ -76,7 +92,7 @@ internal static class SpectatorJoinFlow
             var game = NGame.Instance ?? throw new InvalidOperationException("NGame.Instance is not available.");
             stage = "loading run scene";
             Log.Info($"[{ModInfo.Id}] Spectator stage: {stage}.");
-            await game.LoadRun(runState, rejoinResponse.serializableRun.PreFinishedRoom);
+            await game.LoadRun(runState, serializableRun.PreFinishedRoom);
             runWasLoaded = true;
             Log.Info($"[{ModInfo.Id}] Spectating host {hostSteamId} through read-only player projection {observedPlayer.NetId}.");
         }
@@ -103,6 +119,7 @@ internal static class SpectatorJoinFlow
             {
                 SpectatorRegistry.EndLocalSpectating();
                 RoomRosterProtocol.Unbind(networkService);
+                SpectatorViewSwitch.EndLocalSession();
             }
         }
     }
