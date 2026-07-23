@@ -89,7 +89,7 @@ internal sealed class RoomMemberRow : HBoxContainer
 
         return member.Role == RoomMemberRole.Spectating
             ? "观战中"
-            : member.IsReady ? "已准备" : "未准备";
+            : RoomRoster.IsRunning ? "游玩中" : member.IsReady ? "已准备" : "未准备";
     }
 }
 

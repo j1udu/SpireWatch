@@ -111,3 +111,12 @@ public struct SpectatorHelloMessage : INetMessage, IPacketSerializable
     public readonly void Serialize(PacketWriter writer) => writer.WriteInt(ProtocolVersion, 8);
     public void Deserialize(PacketReader reader) => ProtocolVersion = reader.ReadInt(8);
 }
+
+public struct SpectatorActionReplayReadyMessage : INetMessage, IPacketSerializable
+{
+    public readonly bool ShouldBroadcast => false;
+    public readonly NetTransferMode Mode => NetTransferMode.Reliable;
+    public readonly LogLevel LogLevel => LogLevel.Info;
+    public readonly void Serialize(PacketWriter writer) { }
+    public void Deserialize(PacketReader reader) { }
+}

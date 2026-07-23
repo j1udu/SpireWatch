@@ -23,7 +23,8 @@ The current stack is a `net9.0` DLL Mod referencing the game's `sts2.dll`, Harmo
 | `src/Patches/RoomRosterPatches.cs` | Refreshes the waiting-room projection after native player, character, and ready-state changes. |
 | `src/Patches/RoomSettingsScreenPatch.cs` | Adds the room section through the verified `NSettingsTabManager` lifecycle. |
 | `src/Spectating/SpectatorProtocol.cs` | Host/client protocol challenge before running-session rejoin admission. |
-| `src/Spectating/SpectatorJoinSafety.cs` | Conservative host-side safe-point gate. |
+| `src/Spectating/RunActionJournal.cs` | Captures and replays original action messages while a new spectator restores a snapshot. |
+| `src/Spectating/SpectatorJoinSafety.cs` | Host admission checks for an active, serializable run. |
 | `runtime-validation.md` | Required assembly inspection and multiplayer test matrix. |
 | `scripts/verify-static.sh` | Checks repository scope and Stage 0/1 artifacts without a game install. |
 
@@ -52,8 +53,8 @@ The last binding targets `StartRunLobby.BeginRunLocally`, verified against the l
 2. SpireWatch writes `spirewatch`, protocol/version, spectator count, and phase keys to that same lobby.
 3. The friend-room patch includes only compatible `spirewatch=1` and `phase=running` entries in the spectator branch; ordinary waiting rooms retain vanilla joining and running rows carry `进行中 · 观战`.
 4. A running-room click starts the versioned protocol challenge before the rejoin admission path.
-5. The host validates the SpireWatch wire version and a conservative safe point before creating a mod-only `SpectatorSession` and sending a snapshot.
-6. The client restores a read-only projection through the current vanilla UI bridge. This is an explicit temporary limitation: it still relies on an observed Player NetId and must be replaced by an independent spectator view.
+5. The host validates the SpireWatch wire version and a serializable run before creating a mod-only `SpectatorSession`, capturing an action-journal checkpoint, and sending the original rejoin snapshot.
+6. The client restores a read-only projection through the current vanilla UI bridge, then confirms that original action handlers are registered. The host replays original reliable action messages emitted during loading and finally enables ordinary broadcast delivery. This is an explicit temporary limitation: it still relies on an observed Player NetId and must be replaced by an independent spectator view.
 
 ## Module Boundaries
 
@@ -62,7 +63,7 @@ The last binding targets `StartRunLobby.BeginRunLocally`, verified against the l
 | Lobby metadata | Steam Lobby discovery contract | player/session state, a second lobby |
 | Join branch | route selection and compatibility refusal | vanilla player creation for spectators |
 | Spectator registry | SteamId/NetId to `SpectatorSession` | `RunState.Players`, character slots |
-| Snapshot bridge | safe-point snapshots and recovery | in-flight animation recovery |
+| Snapshot bridge | `SerializableRun` and loading-window original-action replay | a replacement action protocol |
 | Read-only guard | UI and action/command rejection | host authoritative game mutation |
 | Room roster | local UI projection of room membership | original membership, character selection, ready-state authority |
 
@@ -89,6 +90,6 @@ RMP demonstrates custom `INetMessage` registration through `INetGameService.Regi
 - Room-list internals, UI row data, and JoinFlow admission signatures are version-sensitive and must be read from the installed `sts2.dll` before patching.
 - The room tab relies on scene names `General` and `%GeneralSettings` plus `NSettingsTabManager._tabs`; contract checks cover the managed API but a real settings-screen smoke test is still required.
 - Running-room roster behavior depends on custom-message registration and host broadcast readiness; it is source-backed but needs a two-account Steam test before it can be treated as live-validated.
-- The current safe-point gate rejects all active combat. Shop, reward, event and map recovery still require two-account visual verification.
+- Combat joins use the original rejoin snapshot plus a bounded action journal. Its sequencing is source-backed but requires two-account combat testing before it can be considered runtime-proven.
 - Lobby retention, protocol-message ordering, and cleanup timing need live Steam verification on the target game build.
 - No HTTP, WebSocket, external backend, parallel lobby, chat, password, friend filter, kick action, or player impersonation is present.

@@ -35,8 +35,10 @@ internal static class RoomRoster
 {
     private static readonly List<RoomMember> MembersStorage = new();
     private static StartRunLobby? _waitingLobby;
+    private static bool _isRunning;
 
     internal static IReadOnlyList<RoomMember> Members => MembersStorage;
+    internal static bool IsRunning => _isRunning;
 
     internal static event Action? Changed;
 
@@ -50,6 +52,7 @@ internal static class RoomRoster
 
         UnbindWaitingLobby();
         _waitingLobby = lobby;
+        SetRunning(false);
         lobby.PlayerConnected += OnWaitingLobbyChanged;
         lobby.PlayerDisconnected += OnWaitingLobbyChanged;
         RefreshWaitingLobby();
@@ -68,18 +71,21 @@ internal static class RoomRoster
     internal static void Clear()
     {
         UnbindWaitingLobby();
+        SetRunning(false);
         ReplaceMembers(Array.Empty<RoomMember>());
     }
 
     internal static void SetRunningHostRoster(IEnumerable<RoomMember> members)
     {
         UnbindWaitingLobby();
+        SetRunning(true);
         ReplaceMembers(members);
     }
 
-    internal static void ApplyNetworkSnapshot(IEnumerable<RoomMember> members)
+    internal static void ApplyNetworkSnapshot(IEnumerable<RoomMember> members, bool isRunning)
     {
         UnbindWaitingLobby();
+        SetRunning(isRunning);
         ReplaceMembers(members);
     }
 
@@ -134,6 +140,17 @@ internal static class RoomRoster
 
         MembersStorage.Clear();
         MembersStorage.AddRange(nextMembers);
+        Changed?.Invoke();
+    }
+
+    private static void SetRunning(bool value)
+    {
+        if (_isRunning == value)
+        {
+            return;
+        }
+
+        _isRunning = value;
         Changed?.Invoke();
     }
 }

@@ -76,6 +76,8 @@ internal sealed class ReadOnlySpectatorNetGameService : INetGameService
 
     internal void SuppressNextDisconnect()
     {
+        // STS2 v0.109.0 RunManager.CleanUp invokes NetService.Disconnect exactly once.
+        // Keep this single-use guard explicit so an upstream lifecycle change fails visibly in testing.
         _suppressNextDisconnect = true;
     }
 

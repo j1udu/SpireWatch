@@ -105,6 +105,8 @@ internal static class SpectatorViewSwitch
             return;
         }
 
+        SpectatorRegistry.AddHostSpectator(senderId, message.RequestedPlayerNetId);
+        RoomRosterCoordinator.RefreshHostRunningRoster();
         hostService.SendMessage(new SpectatorSwitchTargetResponseMessage
         {
             Accepted = true,

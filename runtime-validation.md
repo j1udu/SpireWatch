@@ -43,7 +43,7 @@ Run with Steam online and two compatible mod installations:
 3. Start the run. Confirm the same Steam `LobbyId` remains friends-joinable and its phase changes to `running`.
 4. On the second account, open `Multiplayer -> Join Game`, refresh the original friend-room list, and confirm the running room carries `进行中 · 观战`.
 5. Confirm a mismatched protocol or `mod_version` does not enter the spectator branch, and the host rejects a missing protocol challenge response.
-6. Confirm an active combat rejects a new spectator; map, shop, reward, event, rest and chest joins must be tested separately.
+6. Join during a card animation, action chain, player-choice pause, and normal combat turn. Confirm the spectator receives the rejoin snapshot, sends its replay-ready acknowledgement only after loading, and converges after the host replays the original action messages emitted during loading.
 7. Attempt cards, end turn, map selection, rewards, event options, purchases and campfire actions on the spectator. Confirm host state is unchanged.
 8. Disconnect the spectator and end the run. Confirm local controls are restored, host `RunState.Players` is unchanged, and the Lobby phase becomes `closed` during cleanup.
 
@@ -59,6 +59,7 @@ Run with Steam online and two compatible mod installations:
 2. Join the running room as a spectator. Confirm the host, both players, and the spectator all refresh to the same roster; the observer must have the drawn eye icon and `观战中` status, while `RunState.Players` still contains only the two real players.
 3. Disconnect and rejoin a real player, then disconnect the spectator. Confirm real-player rows show `断线重连中` until rejoined, and observer rows disappear after host-side disconnect handling.
 4. Confirm the newly admitted spectator receives the roster immediately after snapshot recovery, rather than needing another member change to trigger an update.
+5. During the protocol handshake, confirm a connecting observer is intentionally absent from the roster until its protocol response is validated and the host creates its `SpectatorSession`.
 
 ## M3 Spectator Leave Test
 
@@ -73,13 +74,20 @@ Run with Steam online and two compatible mod installations:
 3. Attempt a switch during active combat. Confirm it is refused with no local cleanup or transport disconnect.
 4. After a successful switch, leave the room. Confirm the underlying Steam session disconnects once and no stale switch-message handler remains registered.
 
+## Combat Join And Replay Test
+
+1. Start a combat, then join as a spectator while a card action, hook action, and player-choice resume occur. Confirm the host accepts the rejoin request instead of rejecting `CombatManager.IsInProgress`.
+2. Confirm the spectator does not receive normal broadcasts until it has completed `LoadRun` and sent `SpectatorActionReplayReadyMessage`.
+3. Confirm the host replays only `ActionEnqueuedMessage`, `HookActionEnqueuedMessage`, and `ResumeActionAfterPlayerChoiceMessage` recorded after the host snapshot checkpoint, then enables normal broadcasts.
+4. Exercise more than 2,048 action messages during a deliberately stalled load. Confirm the host rejects the observer rather than replaying an incomplete journal.
+
 ## Stage 2-4 Acceptance Gates
 
 - All endpoints refuse game, mod protocol, RitsuLib, and dependency mismatches with a user-visible reason.
 - A spectator causes no `RunState.Players` mutation, no character creation, and no player-slot use.
-- Safe-point `SerializableRun` recovery displays the current map/combat/shop/reward/event state.
+- `SerializableRun` recovery and original action-message replay converge after a combat-time spectator join.
 - UI actions and low-level command/action dispatch both reject state-changing spectator inputs.
-- Combat animation/chain-resolution joins remain rejected until a later safe point.
+- The action journal's bounded replay and overflow rejection are exercised with two Steam accounts under a long combat action chain.
 
 ## Current Local Verification
 

@@ -34,6 +34,7 @@ internal static class RunLobbySpectatorConnectionPatch
 
         SpectatorProtocol.EnsureHostBound(hostService);
         SpectatorViewSwitch.EnsureHostBound(hostService);
+        RunActionJournal.EnsureHostBound(hostService);
         hostService.SendMessage(new SpectatorChallengeMessage(), playerId);
         var message = InitialGameInfoMessage.Basic();
         message.sessionState = RunSessionState.Running;
@@ -76,13 +77,13 @@ internal static class RunLobbySpectatorRejoinPatch
             return false;
         }
 
+        var actionCheckpoint = RunActionJournal.CaptureCheckpoint();
         SpectatorRegistry.AddHostSpectator(senderId, observedPlayer.NetId);
         RoomRosterCoordinator.RefreshHostRunningRoster();
         var rejoinMessage = RunManager.Instance.GetRejoinMessage();
         rejoinMessage.serializableRun = RunManager.Instance.ToSave(runState.CurrentRoom);
         service.SendMessage(rejoinMessage, senderId);
-        service.SetPeerReadyForBroadcasting(senderId);
-        RoomRosterProtocol.SendHostRosterTo(senderId);
+        RunActionJournal.AwaitSpectatorReplay(senderId, actionCheckpoint);
         SteamLobbyMetadataPublisher.TryPublish(service, LobbyPhase.Running, SpectatorRegistry.HostSpectatorCount);
         Log.Info($"[{ModInfo.Id}] Accepted spectator {senderId}; observing {observedPlayer.NetId}; total spectators={SpectatorRegistry.HostSpectatorCount}.");
         return false;
@@ -101,6 +102,7 @@ internal static class RunLobbySpectatorDisconnectPatch
 
         SpectatorRegistry.RemoveHostSpectator(playerId);
         SpectatorProtocol.ForgetHostPeer(playerId);
+        RunActionJournal.ForgetSpectator(playerId);
         RoomRosterCoordinator.RefreshHostRunningRoster();
         if (RunManager.Instance.NetService is not null)
         {

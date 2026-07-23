@@ -4,6 +4,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Runs;
 using SpireWatch.Networking;
 using SpireWatch.Rooms;
+using SpireWatch.Spectating;
 
 namespace SpireWatch.Patches;
 
@@ -76,5 +77,6 @@ internal static class RoomRosterProtocolCleanupPatch
     {
         RoomRosterCoordinator.Clear();
         RoomRosterProtocol.Unbind(__instance.NetService);
+        RunActionJournal.Clear();
     }
 }

@@ -128,6 +128,33 @@ try
     RequireEvent(runLobby, "PlayerRejoined", "System.Action`1");
     RequireEvent(runLobby, "RemotePlayerDisconnected", "System.Action`1");
 
+    var actionQueueSynchronizer = RequireType(assembly, "MegaCrit.Sts2.Core.GameActions.Multiplayer.ActionQueueSynchronizer");
+    RequireSingleMethod(
+        actionQueueSynchronizer,
+        "EnqueueAction",
+        method => method.GetParameters() is [
+            { ParameterType.FullName: "MegaCrit.Sts2.Core.GameActions.GameAction" },
+            { ParameterType: var playerIdType },
+        ] && playerIdType == typeof(ulong));
+    RequireSingleMethod(
+        actionQueueSynchronizer,
+        "EnqueueHookAction",
+        method => method.GetParameters() is [{ ParameterType.FullName: "MegaCrit.Sts2.Core.GameActions.GenericHookGameAction" }]);
+    RequireSingleMethod(
+        actionQueueSynchronizer,
+        "ResumeActionAfterPlayerChoice",
+        method => method.GetParameters() is [{ ParameterType: var actionIdType }] && actionIdType == typeof(uint));
+    if (actionQueueSynchronizer.GetField("_messageBuffer", BindingFlags.Instance | BindingFlags.NonPublic)?.FieldType.FullName != "MegaCrit.Sts2.Core.Multiplayer.Game.RunLocationTargetedMessageBuffer")
+    {
+        throw new InvalidOperationException("Missing required ActionQueueSynchronizer._messageBuffer field.");
+    }
+
+    var rejoinResponse = RequireType(assembly, "MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.ClientRejoinResponseMessage");
+    if (rejoinResponse.GetField("combatState", BindingFlags.Instance | BindingFlags.Public)?.FieldType.FullName != "MegaCrit.Sts2.Core.Entities.Multiplayer.NetFullCombatState")
+    {
+        throw new InvalidOperationException("Missing required ClientRejoinResponseMessage.combatState field.");
+    }
+
     var combatManager = RequireType(assembly, "MegaCrit.Sts2.Core.Combat.CombatManager");
     RequireSingleMethod(
         combatManager,

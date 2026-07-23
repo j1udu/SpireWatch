@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Godot;
 using MegaCrit.Sts2.Core.Logging;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 using MegaCrit.Sts2.Core.Multiplayer.Transport;
-using MegaCrit.Sts2.Core.Platform;
+using MegaCrit.Sts2.Core.Nodes;
 using SpireWatch.Rooms;
 
 namespace SpireWatch.Networking;
@@ -62,6 +64,7 @@ public struct RoomMemberWire : IPacketSerializable
 /// <summary>Host-to-peer full roster snapshot used by the room section in the native settings UI.</summary>
 public struct RoomRosterSnapshotMessage : INetMessage, IPacketSerializable
 {
+    public bool IsRunning;
     public List<RoomMemberWire> Members;
 
     public readonly bool ShouldBroadcast => true;
@@ -70,11 +73,13 @@ public struct RoomRosterSnapshotMessage : INetMessage, IPacketSerializable
 
     public readonly void Serialize(PacketWriter writer)
     {
+        writer.WriteBool(IsRunning);
         writer.WriteList(Members ?? new List<RoomMemberWire>(), 6);
     }
 
     public void Deserialize(PacketReader reader)
     {
+        IsRunning = reader.ReadBool();
         Members = reader.ReadList<RoomMemberWire>(6);
     }
 }
@@ -135,6 +140,7 @@ public struct SpectatorSwitchTargetResponseMessage : INetMessage, IPacketSeriali
 internal static class RoomRosterProtocol
 {
     private static INetGameService? _service;
+    private static bool _broadcastScheduled;
 
     internal static void Bind(INetGameService service)
     {
@@ -159,6 +165,7 @@ internal static class RoomRosterProtocol
         _service.UnregisterMessageHandler<RoomRosterSnapshotMessage>(HandleSnapshot);
         RoomRoster.Changed -= BroadcastIfHost;
         _service = null;
+        _broadcastScheduled = false;
     }
 
     internal static void UnbindActive()
@@ -188,13 +195,44 @@ internal static class RoomRosterProtocol
 
     private static void BroadcastIfHost()
     {
-        BroadcastHostRoster();
+        if (_service?.Type != NetGameType.Host || _broadcastScheduled)
+        {
+            return;
+        }
+
+        _broadcastScheduled = true;
+        _ = BroadcastAtNextFrameAsync(_service);
+    }
+
+    private static async System.Threading.Tasks.Task BroadcastAtNextFrameAsync(INetGameService service)
+    {
+        try
+        {
+            if (NGame.Instance is not null)
+            {
+                await ((Node)NGame.Instance).AwaitProcessFrame();
+            }
+
+            if (ReferenceEquals(_service, service))
+            {
+                BroadcastHostRoster();
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.Warn($"[{ModInfo.Id}] Room roster broadcast debounce failed: {exception.Message}");
+        }
+        finally
+        {
+            _broadcastScheduled = false;
+        }
     }
 
     private static RoomRosterSnapshotMessage CreateSnapshot()
     {
         return new RoomRosterSnapshotMessage
         {
+            IsRunning = RoomRoster.IsRunning,
             Members = RoomRoster.Members.Select(ToWire).ToList()
         };
     }
@@ -207,7 +245,7 @@ internal static class RoomRosterProtocol
             return;
         }
 
-        RoomRoster.ApplyNetworkSnapshot(message.Members.Select(ToRoomMember));
+        RoomRoster.ApplyNetworkSnapshot(message.Members.Select(ToRoomMember), message.IsRunning);
     }
 
     private static RoomMemberWire ToWire(RoomMember member)

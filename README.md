@@ -6,7 +6,7 @@ SpireWatch 是《杀戮尖塔 2》多人 Mod，用于安全地扩展原版 Steam
 
 本仓库当前包含实验性的观战加入实现，面向已分析的游戏版本 `v0.109.0`。房主会在原版 Steam Lobby 中写入 `lobby`、`running` 或 `closed` 状态，并仅在房主局实际进行期间保留 Lobby。原版好友房间列表中的兼容 running Lobby 会显示“进行中 · 观战”，点击后进入只读观战流程；普通等待房间仍走原版加入流程。
 
-观战加入前，客户端会校验 Lobby 的 `protocol` 和 `mod_version`；host 会发送 SpireWatch 协议挑战，并在原版重连请求前验证回应。host 只允许非战斗状态且当前房间可序列化时发送快照。观战端在 UI、动作请求和所有 `INetGameService.SendMessage` 路径上拦截可变操作，并在失败、断线和 `RunManager.CleanUp` 时清除本地观战状态。
+观战加入前，客户端会校验 Lobby 的 `protocol` 和 `mod_version`；host 会发送 SpireWatch 协议挑战，并在原版重连请求前验证回应。host 在当前房间可序列化时发送原版重连快照；观战端完成加载后，host 会定向回放加载窗口中产生的原版 Action 消息，再开启常规同步，因此战斗中也可尝试加入。观战端在 UI、动作请求和所有 `INetGameService.SendMessage` 路径上拦截可变操作，并在失败、断线和 `RunManager.CleanUp` 时清除本地观战状态。
 
 当前局面恢复仍通过一个隔离的只读“玩家投影”桥接原版 `LoadRunLobby` UI；它不会在 host `RunState.Players` 中创建 Player，但尚不等同于最终独立的 Spectator 视图。后续阶段必须替换这一桥接，彻底移除对 Player NetId 的依赖。详见 [architecture.md](architecture.md) 与 [runtime-validation.md](runtime-validation.md)。
 
@@ -59,7 +59,7 @@ dotnet build SpireWatch.csproj -c Release /p:DeployToGame=true
 
 联机时，房主、普通玩家和观战者都必须使用兼容的游戏版本，并安装**完全相同版本**的 SpireWatch；所有影响游戏性的其他 Mod 也应保持一致。启动游戏后由房主按原版方式创建多人房间，开局后观战者从原版“多人游戏 -> 加入房间”的好友房间列表点击标有“进行中 · 观战”的房间。
 
-> 当前观战功能仍为实验性实现。首次联机请优先在非战斗安全点测试，并保留游戏日志以便排查问题。
+> 当前观战功能仍为实验性实现。战斗中加入依赖有上限的 Action 回放，尚未经过真实 Steam 双账号验证；首次联机请保留游戏日志以便排查问题。
 
 ## Lobby 协议元数据
 

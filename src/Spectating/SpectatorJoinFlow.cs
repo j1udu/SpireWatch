@@ -94,6 +94,7 @@ internal static class SpectatorJoinFlow
             Log.Info($"[{ModInfo.Id}] Spectator stage: {stage}.");
             await game.LoadRun(runState, serializableRun.PreFinishedRoom);
             runWasLoaded = true;
+            RunActionJournal.NotifySpectatorReady(networkService);
             Log.Info($"[{ModInfo.Id}] Spectating host {hostSteamId} through read-only player projection {observedPlayer.NetId}.");
         }
         catch (Exception exception)
