@@ -5,7 +5,11 @@ using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Screens.Settings;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
+using MegaCrit.Sts2.Core.Runs;
+using SpireWatch.Networking;
 using SpireWatch.Rooms;
+using SpireWatch.Spectating;
 
 namespace SpireWatch.Rooms.UI;
 
@@ -26,6 +30,13 @@ internal sealed class RoomSettingsSection : VBoxContainer
         SizeFlagsHorizontal = SizeFlags.ExpandFill
     };
 
+    private readonly Button _leaveRoomButton = new()
+    {
+        Text = "离开房间",
+        Visible = false,
+        SizeFlagsHorizontal = SizeFlags.ShrinkEnd
+    };
+
     private NSettingsPanel? _panel;
 
     private RoomSettingsSection()
@@ -43,6 +54,8 @@ internal sealed class RoomSettingsSection : VBoxContainer
         AddChildSafely(title);
 
         AddChildSafely(_memberList);
+        _leaveRoomButton.Pressed += LeaveRoom;
+        AddChildSafely(_leaveRoomButton);
     }
 
     internal static void Install(NSettingsTabManager manager)
@@ -134,6 +147,27 @@ internal sealed class RoomSettingsSection : VBoxContainer
             _memberList.AddChildSafely(new Label { Text = "当前不在多人房间中。" });
         }
 
+        _leaveRoomButton.Visible = SpectatorRegistry.IsLocalSpectator;
         _panel?.CallDeferred("RefreshSize");
+    }
+
+    private void LeaveRoom()
+    {
+        if (!SpectatorRegistry.IsLocalSpectator)
+        {
+            return;
+        }
+
+        _leaveRoomButton.Disabled = true;
+        try
+        {
+            RunManager.Instance.NetService?.Disconnect(NetError.Quit);
+        }
+        finally
+        {
+            SpectatorRegistry.EndLocalSpectating();
+            RoomRosterProtocol.UnbindActive();
+            RoomRoster.Clear();
+        }
     }
 }

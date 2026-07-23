@@ -109,6 +109,11 @@ internal static class RoomRosterProtocol
         _service = null;
     }
 
+    internal static void UnbindActive()
+    {
+        Unbind();
+    }
+
     internal static void BroadcastHostRoster()
     {
         if (_service?.Type != NetGameType.Host)

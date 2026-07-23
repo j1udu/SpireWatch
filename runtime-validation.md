@@ -60,6 +60,12 @@ Run with Steam online and two compatible mod installations:
 3. Disconnect and rejoin a real player, then disconnect the spectator. Confirm real-player rows show `断线重连中` until rejoined, and observer rows disappear after host-side disconnect handling.
 4. Confirm the newly admitted spectator receives the roster immediately after snapshot recovery, rather than needing another member change to trigger an update.
 
+## M3 Spectator Leave Test
+
+1. Join a running room as a spectator and open the original settings screen. Confirm only the spectator sees `离开房间`; normal players do not.
+2. Select it. Confirm the spectator leaves the run, the host removes only its Mod-owned `SpectatorSession`, and every remaining client receives a roster without that eye-icon row.
+3. Confirm the host run continues and neither player count nor `RunState.Players` changes.
+
 ## Stage 2-4 Acceptance Gates
 
 - All endpoints refuse game, mod protocol, RitsuLib, and dependency mismatches with a user-visible reason.

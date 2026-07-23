@@ -74,6 +74,8 @@ The last binding targets `StartRunLobby.BeginRunLocally`, verified against the l
 
 The host broadcasts after player/spectator membership changes and sends a targeted snapshot after a newly admitted spectator is marked ready for network broadcasts. This ordering matters because the host service intentionally withholds broadcast traffic from peers during their rejoin handshake.
 
+The native settings section exposes `离开房间` only to a local spectator. It calls the original network service's disconnect path and then clears local Mod state; the host continues to use its existing `RunLobby` disconnect callback to remove the `SpectatorSession` and publish the replacement roster. Real players do not receive this action because their leave/reconnect behavior remains original-game ownership.
+
 ## Source Analysis Findings
 
 The DirectConnectIP reference demonstrates `JoinFlow.Begin` returning `RunSessionState.Running` with `ClientRejoinResponseMessage.serializableRun`; it then uses `RunState.FromSerializable`, `LoadRunLobby`, `RunManager.SetUpSavedMultiplayer`, and `NGame.LoadRun` to restore the run. This is useful evidence for Stage 3, but its normal rejoin path assumes a vanilla player identity and is therefore not usable for SpireWatch unchanged.
