@@ -10,6 +10,7 @@
 | `StartRunLobby.BeginRunLocally` is the host run-start transition | Local `v0.109.0` inspection | Target-confirmed, live pending |
 | `StartRunLobby` exposes `Players`, connect/disconnect events, and character/ready handlers | Local `v0.109.0` inspection | Target-confirmed, live pending |
 | Settings page uses `NSettingsTabManager` with `NSettingsTab` / `NSettingsPanel` pairs | Local `v0.109.0` inspection | Target-confirmed, live pending |
+| `RunLobby` exposes reconnect/disconnect events used by the running-room roster | Local `v0.109.0` inspection | Target-confirmed, live pending |
 | Running connection can carry `SerializableRun` | Local `JoinFlow`, `RunLobby`, and `RunManager.GetRejoinMessage` inspection | Target-confirmed, live pending |
 | Vanilla join-room list can include running friend rooms | Local `NJoinFriendScreen.ShowFriends`, `SteamPlatformUtilStrategy.GetFriendsWithOpenLobbies`, and Steamworks `RequestLobbyData` inspection | Target-confirmed, live pending |
 | Host can retain the lobby after run start | No live Steam session available | Unverified |
@@ -50,7 +51,14 @@ Run with Steam online and two compatible mod installations:
 
 1. Host a normal multiplayer waiting room, open the original settings screen, and select the `房间` tab. Confirm every `StartRunLobby.Players` entry is shown with its selected character icon and `未准备` / `已准备` state.
 2. Join with a second vanilla player, change character, toggle ready, and leave. Confirm both clients refresh the same original settings tab without breaking the other settings tabs, controller navigation, or settings close behavior.
-3. Start a run and open settings. M1 intentionally has no running-room roster protocol yet; verify the room tab does not retain or show stale waiting-room members.
+3. Start a run before completing M2. Verify the room tab does not retain or show stale waiting-room members; after M2, use the running-room test below instead.
+
+## M2 Roster Synchronization Test
+
+1. Start a two-player SpireWatch room. On both accounts, open the original settings screen and confirm the `房间` tab shows both players with character icons and no observer rows.
+2. Join the running room as a spectator. Confirm the host, both players, and the spectator all refresh to the same roster; the observer must have the drawn eye icon and `观战中` status, while `RunState.Players` still contains only the two real players.
+3. Disconnect and rejoin a real player, then disconnect the spectator. Confirm real-player rows show `断线重连中` until rejoined, and observer rows disappear after host-side disconnect handling.
+4. Confirm the newly admitted spectator receives the roster immediately after snapshot recovery, rather than needing another member change to trigger an update.
 
 ## Stage 2-4 Acceptance Gates
 

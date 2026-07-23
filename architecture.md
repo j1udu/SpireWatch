@@ -16,7 +16,9 @@ The current stack is a `net9.0` DLL Mod referencing the game's `sts2.dll`, Harmo
 | `src/Patches/HostLobbyPatches.cs` | Host/lobby lifecycle bindings confirmed by reference source. |
 | `src/Patches/RunningLobbyLifecyclePatch.cs` | `v0.109.0` host run-start lifecycle binding. |
 | `src/Patches/LobbyLifecycleSafetyPatches.cs` | Limits lobby retention to active host runs and clears the running marker during cleanup. |
-| `src/Rooms/RoomRoster.cs` | Read-only local roster projection; in M1 it mirrors the authoritative `StartRunLobby.Players` waiting-room state. |
+| `src/Rooms/RoomRoster.cs` | Read-only local roster projection for the waiting and running phases. |
+| `src/Rooms/RoomRosterCoordinator.cs` | Builds the host running-room projection from `RunState.Players` and mod-owned spectator sessions. |
+| `src/Networking/RoomMessages.cs` | Reliable host-to-peer roster snapshot protocol; it serializes IDs and character `ModelId` fields, not Player objects. |
 | `src/Rooms/UI/` | Native-settings-tab room roster UI. It uses character icons for players and a drawn eye icon for spectators once protocol data is available. |
 | `src/Patches/RoomRosterPatches.cs` | Refreshes the waiting-room projection after native player, character, and ready-state changes. |
 | `src/Patches/RoomSettingsScreenPatch.cs` | Adds the room section through the verified `NSettingsTabManager` lifecycle. |
@@ -68,7 +70,9 @@ The last binding targets `StartRunLobby.BeginRunLocally`, verified against the l
 
 `NSettingsScreen` owns an `NSettingsTabManager`, not a generic Godot `TabContainer`. The manager stores its native tabs in a private `Dictionary<NSettingsTab, NSettingsPanel>` and its controller navigation follows that dictionary. The room section consequently clones the shipped `General` tab/panel scene, clears the cloned panel's content, adds its own rows, and registers the pair with the native dictionary. This preserves the existing settings modal, tab navigation, focus handling, and close behavior without a global hotkey or a standalone overlay.
 
-In this milestone the room roster is intentionally a local waiting-lobby mirror. `StartRunLobby.Players` remains authoritative, and the projection refreshes after its public connect/disconnect events plus its inspected character/ready handlers. Running-room roster synchronization, spectators, disconnect state, and view switching need the later custom room messages and must not be inferred from a waiting-room-only structure.
+`StartRunLobby.Players` remains authoritative during the waiting phase, and the projection refreshes after its public connect/disconnect events plus its inspected character/ready handlers. During a run, only the host builds the projection from `RunState.Players` plus `SpectatorRegistry.HostSessions`; it distributes a compact reliable `RoomRosterSnapshotMessage` through the existing `INetGameService`. Each client resolves display names and character models locally. The snapshot contains no `Player` objects and does not change `RunState.Players`.
+
+The host broadcasts after player/spectator membership changes and sends a targeted snapshot after a newly admitted spectator is marked ready for network broadcasts. This ordering matters because the host service intentionally withholds broadcast traffic from peers during their rejoin handshake.
 
 ## Source Analysis Findings
 
@@ -80,6 +84,7 @@ RMP demonstrates custom `INetMessage` registration through `INetGameService.Regi
 
 - Room-list internals, UI row data, and JoinFlow admission signatures are version-sensitive and must be read from the installed `sts2.dll` before patching.
 - The room tab relies on scene names `General` and `%GeneralSettings` plus `NSettingsTabManager._tabs`; contract checks cover the managed API but a real settings-screen smoke test is still required.
+- Running-room roster behavior depends on custom-message registration and host broadcast readiness; it is source-backed but needs a two-account Steam test before it can be treated as live-validated.
 - The current safe-point gate rejects all active combat. Shop, reward, event and map recovery still require two-account visual verification.
 - Lobby retention, protocol-message ordering, and cleanup timing need live Steam verification on the target game build.
 - No HTTP, WebSocket, external backend, parallel lobby, chat, password, friend filter, kick action, or player impersonation is present.

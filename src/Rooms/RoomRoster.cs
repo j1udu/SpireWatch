@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Platform;
 
 namespace SpireWatch.Rooms;
 
-internal enum RoomMemberRole
+public enum RoomMemberRole
 {
     Playing,
     Spectating
@@ -71,6 +71,18 @@ internal static class RoomRoster
         ReplaceMembers(Array.Empty<RoomMember>());
     }
 
+    internal static void SetRunningHostRoster(IEnumerable<RoomMember> members)
+    {
+        UnbindWaitingLobby();
+        ReplaceMembers(members);
+    }
+
+    internal static void ApplyNetworkSnapshot(IEnumerable<RoomMember> members)
+    {
+        UnbindWaitingLobby();
+        ReplaceMembers(members);
+    }
+
     private static void UnbindWaitingLobby()
     {
         if (_waitingLobby is null)
@@ -100,7 +112,7 @@ internal static class RoomRoster
             player.isReady);
     }
 
-    private static string GetDisplayName(ulong playerId)
+    internal static string GetDisplayName(ulong playerId)
     {
         try
         {

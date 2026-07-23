@@ -12,6 +12,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Runs;
+using SpireWatch.Networking;
 
 namespace SpireWatch.Spectating;
 
@@ -26,6 +27,7 @@ internal static class SpectatorJoinFlow
 
         var networkService = new NetClientGameService();
         SpectatorProtocol.BindClient(networkService);
+        RoomRosterProtocol.Bind(networkService);
         var joinFlow = new JoinFlow(networkService);
         JoinResult joinResult;
         try
@@ -39,6 +41,7 @@ internal static class SpectatorJoinFlow
         if (joinResult.sessionState != RunSessionState.Running || joinResult.rejoinResponse is null)
         {
             networkService.Disconnect(NetError.InvalidJoin);
+            RoomRosterProtocol.Unbind(networkService);
             throw new InvalidOperationException("The selected Steam friend is not in a running SpireWatch session.");
         }
 
@@ -47,6 +50,7 @@ internal static class SpectatorJoinFlow
         if (observedPlayer is null)
         {
             networkService.Disconnect(NetError.InvalidJoin);
+            RoomRosterProtocol.Unbind(networkService);
             throw new InvalidOperationException("The host sent a run snapshot without players.");
         }
 
@@ -98,6 +102,7 @@ internal static class SpectatorJoinFlow
             if (!runWasLoaded)
             {
                 SpectatorRegistry.EndLocalSpectating();
+                RoomRosterProtocol.Unbind(networkService);
             }
         }
     }

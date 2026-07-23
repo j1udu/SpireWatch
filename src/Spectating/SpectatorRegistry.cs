@@ -43,6 +43,8 @@ internal static class SpectatorRegistry
     }
 
     internal static int HostSpectatorCount => SessionsBySpectator.Count;
+
+    internal static IReadOnlyCollection<SpectatorSession> HostSessions => SessionsBySpectator.Values;
 }
 
 /// <summary>

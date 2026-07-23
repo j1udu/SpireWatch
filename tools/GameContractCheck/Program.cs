@@ -125,6 +125,8 @@ try
             { ParameterType.FullName: "MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby.ClientRejoinRequestMessage" },
             { ParameterType: var peerIdType }
         ] && peerIdType == typeof(ulong));
+    RequireEvent(runLobby, "PlayerRejoined", "System.Action`1");
+    RequireEvent(runLobby, "RemotePlayerDisconnected", "System.Action`1");
 
     var combatManager = RequireType(assembly, "MegaCrit.Sts2.Core.Combat.CombatManager");
     RequireSingleMethod(

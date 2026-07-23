@@ -10,6 +10,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Game.Lobby;
 using MegaCrit.Sts2.Core.Multiplayer.Messages.Lobby;
 using MegaCrit.Sts2.Core.Runs;
 using SpireWatch.Networking;
+using SpireWatch.Rooms;
 using SpireWatch.Spectating;
 
 namespace SpireWatch.Patches;
@@ -75,10 +76,12 @@ internal static class RunLobbySpectatorRejoinPatch
         }
 
         SpectatorRegistry.AddHostSpectator(senderId, observedPlayer.NetId);
+        RoomRosterCoordinator.RefreshHostRunningRoster();
         var rejoinMessage = RunManager.Instance.GetRejoinMessage();
         rejoinMessage.serializableRun = RunManager.Instance.ToSave(runState.CurrentRoom);
         service.SendMessage(rejoinMessage, senderId);
         service.SetPeerReadyForBroadcasting(senderId);
+        RoomRosterProtocol.SendHostRosterTo(senderId);
         SteamLobbyMetadataPublisher.TryPublish(service, LobbyPhase.Running, SpectatorRegistry.HostSpectatorCount);
         Log.Info($"[{ModInfo.Id}] Accepted spectator {senderId}; observing {observedPlayer.NetId}; total spectators={SpectatorRegistry.HostSpectatorCount}.");
         return false;
@@ -97,6 +100,7 @@ internal static class RunLobbySpectatorDisconnectPatch
 
         SpectatorRegistry.RemoveHostSpectator(playerId);
         SpectatorProtocol.ForgetHostPeer(playerId);
+        RoomRosterCoordinator.RefreshHostRunningRoster();
         if (RunManager.Instance.NetService is not null)
         {
             SteamLobbyMetadataPublisher.TryPublish(RunManager.Instance.NetService, LobbyPhase.Running, SpectatorRegistry.HostSpectatorCount);
